@@ -15,9 +15,18 @@ public class CardView extends View {
 
     private float dx;
     private float dy;
+    private float initialX;
+    private float initialY;
 
     public CardView(Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
+    }
+
+    @Override
+    protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
+        super.onLayout(changed, left, top, right, bottom);
+        initialX = getX();
+        initialY = getY();
     }
 
     @Override
@@ -34,9 +43,15 @@ public class CardView extends View {
                 float newX = event.getRawX() + dx;
                 float newY = event.getRawY() + dy;
 
+                int screenWidth = getResources().getDisplayMetrics().widthPixels;
+
+                float dragDistance = newX - initialX;
+                float progress = Math.min(Math.max(dragDistance / screenWidth, -1), 1);
+
                 animate()
                         .x(newX)
                         .y(newY)
+                        .rotation(MAX_ROTATION * progress)
                         .setDuration(0)
                         .start();
                 break;
