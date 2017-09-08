@@ -39,12 +39,13 @@ public class CardView extends View {
     public boolean onTouchEvent(MotionEvent event) {
         int action = event.getAction() & MotionEvent.ACTION_MASK;
         switch (action) {
-            case MotionEvent.ACTION_DOWN:
+            case MotionEvent.ACTION_DOWN: {
                 dx = getX() - event.getRawX();
                 dy = getY() - event.getRawY();
                 lastProgress = 0;
                 break;
-            case MotionEvent.ACTION_UP:
+            }
+            case MotionEvent.ACTION_UP: {
                 float newX = event.getRawX() + dx;
                 float dragDistance = newX - initialX;
                 int screenWidth = getResources().getDisplayMetrics().widthPixels;
@@ -65,14 +66,14 @@ public class CardView extends View {
                 resetPosition();
 
                 break;
-            case MotionEvent.ACTION_MOVE:
-                newX = event.getRawX() + dx;
+            }
+            case MotionEvent.ACTION_MOVE: {
+                float newX = event.getRawX() + dx;
                 float newY = event.getRawY() + dy;
+                float dragDistance = newX - initialX;
+                int screenWidth = getResources().getDisplayMetrics().widthPixels;
 
-                screenWidth = getResources().getDisplayMetrics().widthPixels;
-
-                dragDistance = newX - initialX;
-                progress = Math.min(Math.max(dragDistance / screenWidth, -1), 1);
+                float progress = Math.min(Math.max(dragDistance / screenWidth, -1), 1);
                 isSwipingAway = Math.abs(progress) > Math.abs(lastProgress);
                 lastProgress = progress;
 
@@ -83,6 +84,7 @@ public class CardView extends View {
                         .setDuration(0)
                         .start();
                 break;
+            }
             default:
                 return false;
         }
