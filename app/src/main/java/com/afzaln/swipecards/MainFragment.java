@@ -7,8 +7,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
-import java.util.ArrayList;
-import java.util.List;
+import com.afzaln.swipecards.data.MockData;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -35,19 +34,7 @@ public class MainFragment extends Fragment {
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        List<String> list = new ArrayList<>();
-        list.add("one");
-        list.add("two");
-        list.add("three");
-        list.add("four");
-        list.add("five");
-        list.add("six");
-        list.add("seven");
-        list.add("eight");
-        list.add("nine");
-        list.add("ten");
-
-        adapter = new SwipeCardsAdapter(list);
+        adapter = new SwipeCardsAdapter(MockData.getNearbyBusinesses());
         cardsLayout.setAdapter(adapter);
     }
 }
