@@ -45,7 +45,6 @@ public class SwipeCardsAdapter extends BaseAdapter {
 
     @Override
     public View getView(final int position, View convertView, ViewGroup parent) {
-        Timber.d("Open for: " + position);
         ViewHolder vh;
         if (convertView == null) {
             convertView = LayoutInflater.from(parent.getContext()).inflate(R.layout.card, parent, false);
@@ -91,6 +90,7 @@ public class SwipeCardsAdapter extends BaseAdapter {
             tvName.setText(business.name + position);
             ratingTv.setText(view.getResources().getQuantityString(R.plurals.stars, Double.valueOf(business.rating).intValue(), business.rating));
             priceTv.setText(business.price);
+            Timber.d("Getting: " + business.name + position);
         }
     }
 }

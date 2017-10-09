@@ -7,13 +7,15 @@ import android.view.View;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.widget.Toast;
 
+import timber.log.Timber;
+
 /**
  * Created by afzal on 2017-09-20.
  */
 
 public class SwipeCardsTouchListener implements View.OnTouchListener {
-    public static final int MAX_ROTATION = 30;
-    public static final double PROGRESS_THRESHOLD = 0.3;
+    private static final int MAX_ROTATION = 30;
+    private static final double PROGRESS_THRESHOLD = 0.3;
 
     private float dx;
     private float dy;
@@ -23,6 +25,7 @@ public class SwipeCardsTouchListener implements View.OnTouchListener {
     private float lastProgress;
     private boolean isSwipingAway;
     private View observedView;
+    private boolean animationEnded;
 
     private SwipeCardsLayout swipeCardsLayout;
 
@@ -49,10 +52,12 @@ public class SwipeCardsTouchListener implements View.OnTouchListener {
 
                 if (isSwipingAway) {
                     if (progress > PROGRESS_THRESHOLD) {
+                        Timber.d("Swipe right detected");
                         swipeRight();
                         Toast.makeText(view.getContext(), "Swipe right", Toast.LENGTH_SHORT).show();
                         break;
                     } else if (progress < -PROGRESS_THRESHOLD) {
+                        Timber.d("Swipe left detected");
                         swipeLeft();
                         Toast.makeText(view.getContext(), "Swipe left", Toast.LENGTH_SHORT).show();
                         break;
@@ -98,38 +103,50 @@ public class SwipeCardsTouchListener implements View.OnTouchListener {
                 .start();
     }
 
+    private AnimatorListenerAdapter swipeLeftAnimationListener = new AnimatorListenerAdapter() {
+        @Override
+        public void onAnimationEnd(Animator animator) {
+            if (!animationEnded) {
+                Timber.d("Animated ended, swiping right");
+                animationEnded = true;
+                swipeCardsLayout.onViewSwipedToLeft();
+            }
+        }
+    };
+
     private void swipeLeft() {
         int screenWidth = observedView.getResources().getDisplayMetrics().widthPixels;
 
+        animationEnded = false;
         observedView.animate()
                 .x(-screenWidth)
                 .rotation(MAX_ROTATION)
                 .alpha(0f)
                 .setDuration(150)
-                .setListener(new AnimatorListenerAdapter() {
-                    @Override
-                    public void onAnimationEnd(Animator animation) {
-                        super.onAnimationEnd(animation);
-                        swipeCardsLayout.onViewSwipedToLeft();
-                    }
-                });
+                .setListener(swipeLeftAnimationListener);
     }
+
+    private AnimatorListenerAdapter swipeRightAnimationListener = new AnimatorListenerAdapter() {
+        @Override
+        public void onAnimationEnd(Animator animator) {
+            if (!animationEnded) {
+                Timber.d("Animated ended, swiping right");
+                animationEnded = true;
+                swipeCardsLayout.onViewSwipedToRight();
+            }
+        }
+    };
 
     private void swipeRight() {
         int screenWidth = observedView.getResources().getDisplayMetrics().widthPixels;
 
+        animationEnded = false;
         observedView.animate()
                 .x(screenWidth)
                 .rotation(MAX_ROTATION)
                 .alpha(0f)
                 .setDuration(150)
-                .setListener(new AnimatorListenerAdapter() {
-                    @Override
-                    public void onAnimationEnd(Animator animation) {
-                        super.onAnimationEnd(animation);
-                        swipeCardsLayout.onViewSwipedToRight();
-                    }
-                });
+                .setListener(swipeRightAnimationListener);
     }
 
     public void unregisterObservedView() {

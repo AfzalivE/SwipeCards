@@ -2,6 +2,8 @@ package com.afzaln.swipecards;
 
 import android.content.Context;
 import android.database.DataSetObserver;
+import android.graphics.Canvas;
+import android.graphics.Path;
 import android.graphics.Rect;
 import android.os.Build;
 import android.util.AttributeSet;
@@ -32,6 +34,7 @@ public class SwipeCardsLayout extends LinearLayout {
     private View topView;
     private Random mRandom;
     private boolean isFirstLayout = true;
+    private Rect secondTopChildRect = new Rect();
 
     public SwipeCardsLayout(Context context) {
         this(context, null);
@@ -75,22 +78,24 @@ public class SwipeCardsLayout extends LinearLayout {
     @Override
     protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
         // don't display anything if adapter isn't set or is empty
+        Timber.d("OnLayout called");
         if (adapter == null || adapter.isEmpty()) {
             removeAllViewsInLayout();
             return;
         }
 
         for (int i = getChildCount(); i < NUM_STACKED_VIEWS && currentViewIndex < adapter.getCount(); i++) {
-            addNextView(currentViewIndex);
+            addNextView(currentViewIndex, -1);
             currentViewIndex++;
         }
 
         layoutChildren();
+        observeTopView();
 
         isFirstLayout = false;
     }
 
-    private void addNextView(int currentViewIndex) {
+    private void addNextView(int currentViewIndex, int addIndex) {
         View bottomView = adapter.getView(currentViewIndex, null, this);
         bottomView.setTag(R.id.new_view);
 
@@ -125,19 +130,18 @@ public class SwipeCardsLayout extends LinearLayout {
         final int childHeightSpec = MeasureSpec.makeMeasureSpec(params.height, MeasureSpec.EXACTLY);
 
         bottomView.measure(childWidthSpec, childHeightSpec);
-        addViewInLayout(bottomView, 0, params, true);
-
-
+        Timber.d("adding view" + ((TextView) bottomView.findViewById(R.id.name)).getText().toString());
+        addViewInLayout(bottomView, addIndex, params, true);
     }
 
     private void layoutChildren() {
         for (int i = 0; i < getChildCount(); i++) {
+            Timber.d("Laying out child " + i);
             View childView = getChildAt(i);
-            int topViewIndex = getChildCount() - 1;
-            Timber.d("Topview index" + topViewIndex);
-            Timber.d("view" + ((TextView) childView.findViewById(R.id.name)).getText().toString());
+            int topViewIndex = 0;
+            int secondTopViewIndex = 1;
 
-            int distanceToViewAbove = (topViewIndex) - (i);
+            int distanceToViewAbove = topViewIndex - i;
             int newPositionX = (getWidth() - childView.getMeasuredWidth()) / 2;
             int newPositionY = distanceToViewAbove + getPaddingTop();
 
@@ -151,21 +155,20 @@ public class SwipeCardsLayout extends LinearLayout {
             Gravity.apply(Gravity.CENTER, childView.getMeasuredWidth(), childView.getMeasuredHeight(), tmpParentRectIn, tmpChildRectOut);
             childView.layout(tmpChildRectOut.left, tmpChildRectOut.top, tmpChildRectOut.right, tmpChildRectOut.bottom);
 
+            if (i == secondTopViewIndex) {
+                View secondTopView = getChildAt(secondTopViewIndex);
+                if (secondTopView != null) {
+                    secondTopView.getDrawingRect(secondTopChildRect);
+                }
+            }
+
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                childView.setTranslationZ(i);
+                childView.setTranslationZ(getChildCount() - i);
             }
 
             boolean isNewView = childView.getTag(R.id.new_view) == null;
             float scaleFactor = (float) Math.pow(DEFAULT_SCALE_FACTOR, getChildCount() - 1);
-
-            if (i == topViewIndex) {
-                touchListener.unregisterObservedView();
-                childView.animate()
-                        .rotation(0)
-                        .setDuration(300);
-                topView = childView;
-                touchListener.registerObservedView(topView, tmpChildRectOut.left, tmpChildRectOut.top);
-            }
+            childView.setTag(R.id.position, i);
 
             if (!isFirstLayout) {
                 if (isNewView) {
@@ -191,6 +194,36 @@ public class SwipeCardsLayout extends LinearLayout {
         }
     }
 
+    private Path mPath = new Path();
+
+    @Override
+    protected boolean drawChild(Canvas canvas, View child, long drawingTime) {
+        mPath.reset();
+        int position = (int) child.getTag(R.id.position);
+        if (position > 1) {
+            mPath.addRect(0, 0, secondTopChildRect.left + 50, secondTopChildRect.top + 50, Path.Direction.CW);
+//            mPath.addRect(secondTopChildRect.right - 50, 0, child.getRight(), secondTopChildRect.bottom + 50, Path.Direction.CW);
+            canvas.clipPath(mPath);
+        }
+        return super.drawChild(canvas, child, drawingTime);
+    }
+
+    private void observeTopView() {
+        if (getChildCount() <= 0) {
+            return;
+        }
+        int topViewIndex = 0;
+        View childView = getChildAt(topViewIndex);
+        String title = ((TextView) childView.findViewById(R.id.name)).getText().toString();
+        Timber.d("Observing top view: " + title);
+        touchListener.unregisterObservedView();
+        childView.animate()
+                .rotation(0)
+                .setDuration(300);
+        topView = childView;
+        touchListener.registerObservedView(topView, childView.getLeft(), childView.getTop());
+    }
+
     public void onViewSwipedToRight() {
         removeTopView();
     }
@@ -200,6 +233,7 @@ public class SwipeCardsLayout extends LinearLayout {
     }
 
     private void removeTopView() {
+        Timber.d("Removing top view");
         if (topView != null) {
             removeView(topView);
             topView = null;
